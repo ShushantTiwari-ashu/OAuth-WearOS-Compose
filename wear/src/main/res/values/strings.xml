@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">DeviceAuthenticationSample</string>
+    <!--
+    This string is used for square devices and overridden by hello_world in
+    values-round/strings.xml for round devices.
+    -->
+    <string name="hello_world">From the Square world,\nHello, %1$s!</string>
+    <string name="tile_label">Example tile</string>
+    <string name="complication_label">Example complication</string>
+    <string name="message">Message</string>
+    <string name="data_item_changed">DataItem changed</string>
+    <string name="data_item_deleted">DataItem deleted</string>
+    <string name="data_item_unknown">Unknown DataItem type</string>
+
+    <string name="start_auth_flow">Authenticate</string>
+    <string name="oauth_pkce">OAuth PKCE</string>
+    <string name="status_switch_to_phone">Starting authorization… Switch to your phone to authenticate.</string>
+    <string name="status_failed">Authorization failed</string>
+    <string name="empty">""</string>
+    <string name="status_retrieving_token">Retrieving token…</string>
+    <string name="status_failure_token">Could not retrieve token</string>
+    <string name="status_token_received">Token received..</string>
+    <string name="status_failure_user">Could not retrieve user profile</string>
+    <string name="status_retrieved">User profile retrieved. Name:</string>
+</resources>
