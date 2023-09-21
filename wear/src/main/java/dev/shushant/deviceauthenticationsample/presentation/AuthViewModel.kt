@@ -2,6 +2,7 @@ package dev.shushant.deviceauthenticationsample.presentation
 
 import android.app.Application
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,39 +22,43 @@ import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-private const val TAG = "WearOAuthViewModel"
+private const val TAG = "AuthViewModel"
 private const val CLIENT_ID = ""
 private const val CLIENT_SECRET = ""
+const val BASE_URL = "http://192.168.1.33:8080"
 
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
-    // Status to show on the Wear OS display
-
-    // Dynamic content to show on the Wear OS display
-    val result = MutableStateFlow("")
+    private val token = MutableStateFlow("")
+    val isSuccess = MutableStateFlow(false)
     val status = MutableStateFlow("")
     val retry = MutableStateFlow(false)
 
+    fun getToken() = token.value
+
     private fun showStatus(statusString: Int, resultString: String = "") {
         status.updateAndGet { getApplication<Application>().resources.getString(statusString) }
-        result.updateAndGet { resultString }
+        token.updateAndGet { resultString }
     }
 
     private fun updateRetry() {
-        retry.updateAndGet { retry.value.not() }
+        isSuccess.updateAndGet { false }
     }
 
     fun startAuthFlow() {
         viewModelScope.launch {
             val codeVerifier = CodeVerifier()
 
-            val uri = Uri.Builder()
-                .encodedPath("http://192.168.1.10:8080/code")
-                .build()
-            val oauthRequest = OAuthRequest.Builder(getApplication())
-                .setAuthProviderUrl(uri)
-                .setCodeChallenge(CodeChallenge(codeVerifier))
-                .setClientId(CLIENT_ID)
+            Log.d("Build.MANUFACTURER",Build.MANUFACTURER)
+            Log.d("Build.ID",Build.ID)
+            Log.d("Build.MODEL",Build.MODEL)
+            Log.d("Build.BRAND",Build.BRAND)
+
+
+            val uri = Uri.Builder().encodedPath("${BASE_URL}auth").build()
+            val oauthRequest = OAuthRequest.Builder(getApplication()).setAuthProviderUrl(uri)
+                .setCodeChallenge(CodeChallenge(codeVerifier)).setClientId(CLIENT_ID)
+                .setRedirectUrl(Uri.parse("com.samsung.android.waterplugin:/3p_auth/"))
                 .build()
 
             // Step 1: Retrieve the OAuth code
@@ -65,20 +70,17 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             // Step 2: Retrieve the access token
-            showStatus(R.string.status_retrieving_token)
+            showStatus(R.string.status_retrieving_token,"For $code")
             val token = retrieveToken(code, codeVerifier, oauthRequest).getOrElse {
                 showStatus(R.string.status_failure_token)
                 updateRetry()
                 return@launch
             }
+            isSuccess.updateAndGet { true }
             showStatus(R.string.status_token_received, token)
         }
     }
 
-    /**
-     * Use the [RemoteAuthClient] class to authorize the user. The library will handle the
-     * communication with the paired device, where the user can log in.
-     */
     private suspend fun retrieveOAuthCode(
         oauthRequest: OAuthRequest
     ): Result<String> {
@@ -86,42 +88,39 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
         // Wrap the callback-based request inside a coroutine wrapper
         return suspendCoroutine { c ->
-            RemoteAuthClient.create(getApplication()).sendAuthorizationRequest(
-                request = oauthRequest,
-                executor = { command -> command?.run() },
-                clientCallback = object : RemoteAuthClient.Callback() {
-                    override fun onAuthorizationError(request: OAuthRequest, errorCode: Int) {
-                        Log.w(TAG, "Authorization failed with errorCode $errorCode")
-                        c.resume(Result.failure(IOException("Authorization failed")))
-                    }
-
-                    override fun onAuthorizationResponse(
-                        request: OAuthRequest,
-                        response: OAuthResponse
-                    ) {
-                        val responseUrl = response.responseUrl
-                        Log.d(TAG, "Authorization success. ResponseUrl: $responseUrl")
-                        val code = responseUrl?.getQueryParameter("code")
-                        if (code.isNullOrBlank()) {
-                            c.resume(Result.failure(IOException("Authorization failed")))
-                        } else {
-                            c.resume(Result.success(code))
+            RemoteAuthClient.create(getApplication())
+                .sendAuthorizationRequest(request = oauthRequest,
+                    executor = { command -> command?.run() },
+                    clientCallback = object : RemoteAuthClient.Callback() {
+                        override fun onAuthorizationError(request: OAuthRequest, errorCode: Int) {
+                            Log.w(TAG, "Authorization failed with errorCode $errorCode")
+                            c.resume(Result.failure(IOException("Authorization failed - PHONE_UNAVAILABLE")))
                         }
-                    }
-                }
-            )
+
+                        override fun onAuthorizationResponse(
+                            request: OAuthRequest, response: OAuthResponse
+                        ) {
+                            val responseUrl = response.responseUrl
+                            Log.d(TAG, "Authorization success. ResponseUrl: $responseUrl")
+
+                            val code = responseUrl?.getQueryParameter("code")
+                            Log.d(TAG, "Authorization Code: $code")
+                            if (code.isNullOrBlank()) {
+                                c.resume(Result.failure(IOException("Authorization failed")))
+                            } else {
+                                c.resume(Result.success(code))
+                            }
+                        }
+                    })
         }
     }
 
     private suspend fun retrieveToken(
-        code: String,
-        codeVerifier: CodeVerifier,
-        oauthRequest: OAuthRequest
+        code: String, codeVerifier: CodeVerifier, oauthRequest: OAuthRequest
     ): Result<String> {
         return runCatching {
             val responseJson = doPostRequest(
-                url = "http://192.168.1.10:8080/token",
-                params = mapOf(
+                url = "${BASE_URL}token", params = mapOf(
                     "client_id" to CLIENT_ID,
                     "client_secret" to CLIENT_SECRET,
                     "code" to code,
@@ -131,7 +130,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
             Result.success(responseJson.accessToken)
-        }.getOrElse { Result.failure(it) }
+        }.getOrElse {
+            Result.failure(it)
+        }
     }
 }
 

@@ -17,7 +17,7 @@ const val BURN_IN_OFFSET_PX = 10
 
 
 @Composable
-fun DeviceAuthenticationSampleTheme(
+fun WearOsAppTheme(
     content: @Composable () -> Unit
 ) {
     /**

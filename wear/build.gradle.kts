@@ -1,4 +1,4 @@
-@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
+@Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
@@ -17,7 +17,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
     }
 
     buildTypes {
@@ -78,5 +77,6 @@ dependencies {
     debugImplementation(libs.ui.test.manifest)
     implementation(libs.androidx.material.icons.extended)
     wearApp(project(":wear"))
-
+    implementation(libs.core)
+    implementation(libs.androidx.navigation.compose)
 }

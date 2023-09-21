@@ -15,7 +15,7 @@
     <string name="start_auth_flow">Authenticate</string>
     <string name="oauth_pkce">OAuth PKCE</string>
     <string name="status_switch_to_phone">Starting authorization… Switch to your phone to authenticate.</string>
-    <string name="status_failed">Authorization failed</string>
+    <string name="status_failed">Authorization failed \n PHONE_UNAVAILABLE</string>
     <string name="empty">""</string>
     <string name="status_retrieving_token">Retrieving token…</string>
     <string name="status_failure_token">Could not retrieve token</string>
